@@ -58,6 +58,8 @@ paseo plugin ls pma-hydrogen
 
 来源标签单独成行、前后留空行时，Opus 显示为红色，Neon 显示为金黄色，Astra 显示为紫色。若正文包含跨段落的 Markdown 引用链接定义，则保留整篇 Markdown 渲染。
 
+Hydrogen 卡片支持独立的 LaTeX 公式块。用双美元包围公式，定界符各占一行，公式放在代码块之外。公式由 Paseo 服务端本地排版，安装插件时会构建所需的渲染依赖。源代码及许可证见 [NOTICE](plugins/pma-hydrogen/NOTICE)。
+
 插件在 Paseo 服务端以当前服务用户身份运行，并在服务主机的 `PASEO_HOME/pma-hydrogen`（默认 `~/.paseo/pma-hydrogen`）保存成稿用于恢复。插件通过 Paseo 使用已配置的官方 Antigravity，不接收账号密码。
 
 完整规则和交接模板见 [Skill](paseo-multi-agent/SKILL.md) 和 [Paseo 执行细节](paseo-multi-agent/references/paseo-execution.md)。

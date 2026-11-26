@@ -1,5 +1,19 @@
 {
   "id": "pma-hydrogen",
   "name": "PMA Hydrogen",
-  "requirements": { "paseo": ">=0.17.4" }
+  "requirements": {
+    "paseo": ">=0.17.4"
+  },
+  "build": [
+    [
+      "npm",
+      "ci",
+      "--ignore-scripts"
+    ],
+    [
+      "npm",
+      "run",
+      "build"
+    ]
+  ]
 }

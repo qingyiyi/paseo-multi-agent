@@ -1,6 +1,6 @@
 import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
-import { Markdown } from "@getpaseo/plugin/client/ui";
+import { MathMarkdown } from "./client/math-blocks";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { z } from "zod";
@@ -72,7 +72,7 @@ function Badge({ label }: { label: ModelLabel }) {
   );
 }
 
-function HydrogenResult({ item }: PluginTimelineItemProps<{ text: string }>) {
+function HydrogenResult({ item, theme }: PluginTimelineItemProps<{ text: string }>) {
   const { text } = item.data;
   const prefix = /^hydrogen:\r?\n/.exec(text);
   const parts = splitModelLabels(text.slice(prefix?.[0].length ?? 0));
@@ -86,7 +86,7 @@ function HydrogenResult({ item }: PluginTimelineItemProps<{ text: string }>) {
             {part.labels.map((label, index) => <Badge key={index} label={label} />)}
           </View>
         ) : (
-          <Markdown key={index}>{part.text}</Markdown>
+          <MathMarkdown key={index} text={part.text} foreground={theme.colors.foreground} />
         ),
       )}
     </View>

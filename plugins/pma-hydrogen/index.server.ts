@@ -3,6 +3,8 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { defineAgentTool } from "@getpaseo/plugin/server";
 import type { AgentToolContext, PluginServerContext } from "@getpaseo/plugin/server";
+import { renderFormula } from "./server/render-math";
+import { renderMath } from "./shared/render-math";
 import { z } from "zod";
 import {
   answerPermission, idSchema, permissionKind, requestSchema, resultKind, restore, statusKind,
@@ -297,7 +299,7 @@ const publishHydrogen = defineAgentTool({
           await worker.setMetadata({ [deliveryKey]: input.requestId });
           const mode = input.kind === "chat"
             ? "根据下面的简短交接直接回复用户。"
-            : "只润色下面已核实的定稿。保留结论、数字、公式、引用、不确定性和各模型来源标签。";
+            : "只润色下面已核实的定稿。保留结论、数字、公式、引用、不确定性和各模型来源标签。保留独立 LaTeX 公式块，双美元定界符各占一行。";
           const prompt = mode + "\n根据交接中的事实或定稿作答。查找文件、执行命令及事实核对由其他角色完成。本轮只写正文，第一行单独写 hydrogen:。\n\n" +
             input.brief + (input.fallbackDraft ? "\n\n已核实定稿\n\n" + input.fallbackDraft : "");
           try {
@@ -337,6 +339,7 @@ const publishHydrogen = defineAgentTool({
 });
 
 export default function contribute(server: PluginServerContext) {
+  server.handle(renderMath, renderFormula);
   server.addHook("agent.open.before", async ({ request }) => {
     if (request.provider !== "codex" ||
         (request.background && request.labels["paseo-workflow-role"] !== "astra")) return;

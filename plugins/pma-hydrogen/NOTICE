@@ -1,0 +1,9 @@
+Formula rendering code adapted from paseo-math (q5m-math).
+Copyright 2026 q5m-ai contributors.
+Source https://github.com/q5m-ai/paseo-math/tree/d3d0b351099b07f46c7d1924b1ac582c65448559
+The server renderer, its RPC schema, and TeX normalization are adapted for use
+inside PMA timeline cards. See LICENSE.q5m-math for the original license.
+
+MathJax is licensed under Apache-2.0 and resvg under MPL-2.0.
+The build embeds the unmodified resvg WASM binary from @resvg/resvg-wasm 2.6.2.
+Its source is available at https://github.com/thx/resvg-js/tree/v2.6.2.
