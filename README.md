@@ -54,6 +54,8 @@ paseo plugin ls pma-hydrogen
 
 启用插件后，成稿以浅蓝色 `hydrogen:` 标签显示在原主对话。主控 Sol 和 Astra 收到交付状态，成稿全文不自动进入它们的模型上下文。回显失败时，主对话会提供备用答复、定稿或可打开的定稿链接。服务重启后，可在原对话输入 `/pma-replay` 恢复保存的成稿，无需重新生成。
 
+来源标签单独成行、前后留空行时，Opus 显示为红色，Neon 显示为金黄色，Astra 显示为紫色。若正文包含跨段落的 Markdown 引用链接定义，则保留整篇 Markdown 渲染。
+
 插件在 Paseo 服务端以当前服务用户身份运行，并在服务主机的 `PASEO_HOME/pma-hydrogen`（默认 `~/.paseo/pma-hydrogen`）保存成稿用于恢复。插件通过 Paseo 使用已配置的官方 Antigravity，不接收账号密码。
 
 完整规则和交接模板见 [Skill](paseo-multi-agent/SKILL.md) 和 [Paseo 执行细节](paseo-multi-agent/references/paseo-execution.md)。
