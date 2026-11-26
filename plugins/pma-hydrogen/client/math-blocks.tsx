@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Image, ScrollView, Text, processColor } from "react-native";
 import { renderMath } from "../shared/render-math";
 import type { RenderOutput } from "../shared/render-math";
+import { getReferenceDefinitions, prepareMarkdown } from "./markdown-source";
 
 type Part = { source: string; expression?: string };
 
@@ -90,8 +91,12 @@ function MathBlock({ expression, source, color }: { expression: string; source: 
 
 export function MathMarkdown({ text, foreground }: { text: string; foreground: string }) {
   const parts = splitMathBlocks(text);
-  if (!parts.some(({ expression }) => expression)) return <Markdown>{text}</Markdown>;
+  if (!parts.some(({ expression }) => expression)) return <Markdown>{prepareMarkdown(text)}</Markdown>;
 
+  // Links can reference definitions elsewhere in the card, across a display equation.
+  const definitions = getReferenceDefinitions(
+    parts.filter((part) => !part.expression).map((part) => part.source).join("\n\n"),
+  );
   const processed = processColor(foreground);
   const color = typeof processed === "number"
     ? "#" + (processed & 0xffffff).toString(16).padStart(6, "0")
@@ -99,6 +104,6 @@ export function MathMarkdown({ text, foreground }: { text: string; foreground: s
   return parts.map(({ expression, source }, index) => expression ? (
     <MathBlock key={index + ":" + color + ":" + expression} expression={expression} source={source} color={color} />
   ) : (
-    <Markdown key={index}>{source}</Markdown>
+    <Markdown key={index}>{prepareMarkdown(definitions ? `${definitions}\n\n${source}` : source)}</Markdown>
   ));
 }
