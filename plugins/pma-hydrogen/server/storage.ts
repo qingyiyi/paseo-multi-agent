@@ -3,15 +3,16 @@ import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promise
 import { homedir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
-import { idSchema } from "../shared/hydrogen";
+import { idSchema, requestSchema } from "../shared/hydrogen";
 
 export const rootDirectory = path.join(process.env.PASEO_HOME || path.join(homedir(), ".paseo"), "pma-hydrogen");
-export const requestSchema = z.string().regex(/^[a-zA-Z0-9_-]{8,80}$/);
 const recordSchema = z.object({
   workerId: idSchema,
   messageId: idSchema,
   submittedAt: z.number(),
   text: z.string().optional(),
+  draft: z.string().optional(),
+  failed: z.boolean().optional(),
 });
 export type Delivery = z.infer<typeof recordSchema>;
 

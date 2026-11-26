@@ -81,7 +81,8 @@
 
 - 有 `pma_hydrogen` 时，聊天由原主会话调用 `kind: "chat"`。简单执行的结果由主控 Sol 交 Hydrogen 润色并调用 `kind: "polish"`。计划由原主会话的直属 Astra 调用 `kind: "polish"`，并传 `rootAgentId` 为原主会话的 Paseo ID。后台 Astra 带标签 `paseo-workflow-role=astra`。主会话自己调用时省略 `rootAgentId`。
 - `brief` 只传当前请求或 Astra 已确认的定稿及必要格式要求。每项交付生成一个稳定且唯一的 `requestId`，例如 UUID。相关追问可用 `reuseWorker: true`，无关联任务使用默认值。插件负责触发 Hydrogen，调用方无需另开 Gemini。收到 `delivered: true` 后只记录交付状态，不提取或复述成稿。需要重试时使用原 `requestId`，避免再次生成。
-- 若 Paseo 客户端弹出 `pma_hydrogen` 工具使用确认，交给用户决定。服务重启后，原主对话可以用客户端命令 `/pma-replay` 恢复此前已展示的成稿，或在下一轮对话开始时自动恢复。
+- 插件工具定义支持 `fallbackDraft` 时，润色把已核实的定稿放到 `fallbackDraft`，`brief` 只传写作要求。原定稿只传一次。若工具返回 `pending: true`，主对话会显示必要的确认入口，用户处理后插件沿同一 `requestId` 自动交付。收到 `fallbackDelivered: true` 时，原定稿已显示。遇到无法自动交付且无已显示定稿的情况，按下文提供备用交付。聊天如已有经核实的备用答复，也可放进 `fallbackDraft`。
+- 若 Paseo 客户端弹出 `pma_hydrogen` 工具使用确认，或主对话显示 Hydrogen 工作者的确认卡片，由用户决定。服务重启后，原主对话可以用 `/pma-replay` 恢复已保存的成稿并刷新待处理请求。
 - 真实 Hydrogen 回复统一以单独一行 `hydrogen:` 开始。手动交接使用上面的聊天或润色模板。若展示桥接有格式校验，确保首行标记只出现一次。主控 Sol 的备用答复、Astra 原稿和进度使用各自的身份标识。
 - 只有当前主会话存在确认能仅在界面展示成稿的 Paseo 桥接时，才使用自动回显。插件使用原主控 Sol 会话 ID 和任务身份进行交付及去重。主控 Sol 和 Astra 只收状态。普通代理消息、完成通知、模型可见的工具返回和时间线展示项是不同通道。插件可用 `timeline.append` 展示结果。重启恢复使用已保存的正文。 [Paseo 0.17.4 插件时间线接口](https://github.com/getpaseo/paseo/blob/v0.17.4/public-docs/plugins/reference.md#append-a-timeline-row-from-the-daemon)
 - 自动回显尚无交付确认时，主控 Sol 仅记录进度。确认桥接缺失或无法交付时，主控 Sol 在原主对话提供执行 Sol 的结果、Astra 定稿或可打开的结果链接，聊天给出备用答复。以实际交付为准，进度摘要和工作者完成状态不作为已交付的证明。

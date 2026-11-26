@@ -1,7 +1,13 @@
 import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plugin/client";
+import { useRpc } from "@getpaseo/plugin/client";
 import { Markdown } from "@getpaseo/plugin/client/ui";
-import { Text, View } from "react-native";
-import { resultKind, resultSchema, restore } from "./shared/hydrogen";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import type { z } from "zod";
+import {
+  answerPermission, permissionKind, permissionSchema, resultKind, resultSchema, restore,
+  statusKind, statusSchema,
+} from "./shared/hydrogen";
 
 const opus = { color: "#991B1B", backgroundColor: "#FEE2E2" };
 const modelColors = {
@@ -87,6 +93,57 @@ function HydrogenResult({ item }: PluginTimelineItemProps<{ text: string }>) {
   );
 }
 
+function PermissionCard({ agentId, item, theme }: PluginTimelineItemProps<z.output<typeof permissionSchema>>) {
+  const respond = useRpc(answerPermission);
+  const [state, setState] = useState<"ready" | "sending" | "sent" | "stale" | "error">("ready");
+  const { deliveryId, permissionId, title, detail, actions } = item.data;
+  const { foreground, foregroundMuted, surface1, border, accent, accentForeground } = theme.colors;
+
+  async function choose(actionId: string) {
+    setState("sending");
+    try {
+      const { accepted } = await respond({ agentId, deliveryId, permissionId, actionId });
+      setState(accepted ? "sent" : "stale");
+    } catch {
+      setState("error");
+    }
+  }
+
+  return (
+    <View style={{ backgroundColor: surface1, borderColor: border, borderWidth: 1, borderRadius: 8, padding: 12, gap: 8 }}>
+      <Text style={{ color: foreground, fontWeight: "700" }}>Hydrogen 等待确认</Text>
+      <Text selectable style={{ color: foreground }}>{title}</Text>
+      {detail && <Text selectable style={{ color: foregroundMuted }}>{detail}</Text>}
+      {state === "error" && <Text style={{ color: theme.colors.statusDanger }}>提交失败，请重试。</Text>}
+      {state === "stale" && <Text style={{ color: foregroundMuted }}>这项请求已关闭或已处理。</Text>}
+      {state === "sent" && <Text style={{ color: foregroundMuted }}>已提交，等待 Hydrogen 继续。</Text>}
+      {actions.length > 0 && (state === "ready" || state === "sending" || state === "error") && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {actions.map((action) => (
+            <Pressable
+              key={action.id}
+              accessibilityRole="button"
+              disabled={state === "sending"}
+              onPress={() => { void choose(action.id); }}
+              style={{
+                backgroundColor: action.behavior === "allow" ? accent : surface1,
+                borderWidth: 1, borderColor: border, borderRadius: 6,
+                paddingHorizontal: 10, paddingVertical: 6,
+              }}
+            >
+              <Text style={{ color: action.behavior === "allow" ? accentForeground : foreground }}>{action.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function DeliveryStatus({ item, theme }: PluginTimelineItemProps<z.output<typeof statusSchema>>) {
+  return <Text style={{ color: theme.colors.foregroundMuted }}>{item.data.title}</Text>;
+}
+
 export default function contribute(client: PluginClientContext) {
   client.addTimelineRenderer({
     kind: resultKind,
@@ -94,10 +151,22 @@ export default function contribute(client: PluginClientContext) {
     schema: resultSchema,
     Component: HydrogenResult,
   });
+  client.addTimelineRenderer({
+    kind: permissionKind,
+    version: 1,
+    schema: permissionSchema,
+    Component: PermissionCard,
+  });
+  client.addTimelineRenderer({
+    kind: statusKind,
+    version: 1,
+    schema: statusSchema,
+    Component: DeliveryStatus,
+  });
 
   client.addSlashCommand({
     name: "pma-replay",
-    description: "恢复此对话已保存的 Hydrogen 成稿",
+    description: "恢复此对话已保存的成稿及待处理的 Hydrogen 请求",
     argumentHint: "",
     context: "agent",
     async onSubmit({ agent, rpc }) {
