@@ -45,7 +45,16 @@ cp -R paseo-multi-agent/paseo-multi-agent "$HOME/.agents/skills/"
 
 ## Hydrogen 回显
 
-自动回显依赖 Paseo 服务端提供 `pma_hydrogen` 工具。目前此仓库提供 Skill，回显插件需要单独部署。启用后，成稿以 `hydrogen:` 标识，直接显示在原主对话。Terra 和 Astra 只收到交付状态，成稿全文不会自动进入它们的模型上下文。回显不可用时，主对话会提供备用答复、定稿或可打开的定稿链接。
+仓库中的 [PMA Hydrogen 插件](plugins/pma-hydrogen/) 提供 `pma_hydrogen` 工具。插件需要 Paseo 0.17.4 或更新版本，并在运行 Paseo 服务的机器上安装。请先配置官方 Antigravity，登录自己的账号并确认 `gemini-4-hydrogen` 可用。
+
+```sh
+paseo plugin install git:qingyiyi/paseo-multi-agent:plugins/pma-hydrogen
+paseo plugin ls pma-hydrogen
+```
+
+启用插件后，成稿以浅蓝色 `hydrogen:` 标签显示在原主对话。Terra 和 Astra 收到交付状态，成稿全文不自动进入它们的模型上下文。回显失败时，主对话会提供备用答复、定稿或可打开的定稿链接。服务重启后，可在原对话输入 `/pma-replay` 恢复保存的成稿，无需重新生成。
+
+插件在 Paseo 服务端以当前服务用户身份运行，并在服务主机的 `PASEO_HOME/pma-hydrogen`（默认 `~/.paseo/pma-hydrogen`）保存成稿用于恢复。插件通过 Paseo 使用已配置的官方 Antigravity，不接收账号密码。
 
 完整规则和交接模板见 [Skill](paseo-multi-agent/SKILL.md) 和 [Paseo 执行细节](paseo-multi-agent/references/paseo-execution.md)。
 
