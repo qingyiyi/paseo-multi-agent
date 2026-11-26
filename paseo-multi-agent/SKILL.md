@@ -1,9 +1,9 @@
 ---
 name: paseo-multi-agent
-description: 在 Paseo 的 Codex 主会话中使用 PMA，由 Terra 分流，Hydrogen 回答聊天，Neon 默认规划。明确点名 Opus 5.5 时由 Opus 起草、Neon 补充，并由 Astra High 审核、派发和汇总。适用于用户要求使用这套多模型协作的任务。
+description: Paseo-Multi-Agent（PMA）是 Paseo 的 Codex 多模型工作流。用于用户以 PMA 简称或明确要求这套协作的任务。由 Terra 分流，Hydrogen 回答聊天，Neon 默认规划。明确点名 Opus 5.5 时由 Opus 起草、Neon 补充，并由 Astra High 审核、派发和汇总。
 ---
 
-# Paseo 多模型协作
+# Paseo-Multi-Agent
 
 保留原 Paseo Codex 对话与历史，由 GPT‑6.1 Terra 接收消息并分流。仅咨询设计、修改 Skill 或查看配置时，直接完成对应工作。遵循当前任务和项目已确认的权限与决策分工。
 
@@ -28,6 +28,7 @@ description: 在 Paseo 的 Codex 主会话中使用 PMA，由 Terra 分流，Hyd
 
 - 同一原主会话按需复用一个 Sol、一个 Terra 子代理和一个 Neon。用明确的工作者 ID 和角色核对归属、模型、空闲状态。后续只传必要增量、路径和当前验收条件。Astra 在同一任务内持续审核、派发并汇总。相关任务可复用工作者，对无关任务保持短上下文。一条繁忙会话默认排队。复用本身不保证旧历史免计额度。
 - **Hydrogen 实际生成的聊天回复或成稿首行固定为 `hydrogen:`**，第二行开始正文。原稿和状态消息使用自己的身份标识。展示桥接只把成稿写给用户。**Hydrogen 全文禁止自动回传给 Terra 或 Astra，禁止作为其后续模型上下文。**
+- 当前主机提供 `pma_hydrogen` 时，由聊天路线的 Terra 或计划路线中原主会话的直属 Astra 调用一次。工具仅返回交付状态。调用参数和恢复方式见执行细节。
 - 自动写回需要已验证的 Paseo 展示桥接。桥接缺失或交付失败时，Terra 要在原主对话实际提供可用交付物或可打开的定稿链接，并说明 Hydrogen 回显状态。聊天用 Terra 的备用答复，计划或执行用 Astra 定稿。进度消息不能充当结果。只在用户明确接受独立 Gemini 会话交付时，才在该会话生成 Hydrogen 结果，并关闭完成回传。已成功生成的成稿用于恢复显示时，直接取回已有记录。
 
 实际调用 Paseo 工具、核对现有工作者或准备交接时，读取 [Paseo 执行细节](references/paseo-execution.md)。

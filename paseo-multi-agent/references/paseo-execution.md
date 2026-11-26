@@ -2,7 +2,7 @@
 
 ## 原对话与可用工具
 
-在原 Paseo Codex 对话的模型选择器切到 GPT‑6.1 Terra，然后发送 `/pma` 加实际任务。直接使用 Codex 时可用 `$pma`。老命令 `/paseo-multi-agent` 仍可使用。安装时把 `pma` 和 `paseo-multi-agent` 两个目录放进实际运行 Codex 的主机上的 `~/.agents/skills/`。若 Paseo 客户端连远端主机，Skill 由远端 Codex 加载。主会话身份用 `PASEO_AGENT_ID` 或已确认的 Paseo agent ID，即使 Hydrogen 由子代理 Astra 派发，交付目标也是原 Terra 主会话。不要仅靠标题选会话。 [Codex Skill 安装位置](https://learn.chatgpt.com/docs/build-skills)
+在原 Paseo Codex 对话的模型选择器切到 GPT‑6.1 Terra。输入 `/PMA` 搜索并选择 `/paseo-multi-agent`，再追加实际任务。也可以直接输入完整命令 `/paseo-multi-agent`。直接使用 Codex 时用 `$paseo-multi-agent`。安装只需把 `paseo-multi-agent` 目录放进实际运行 Codex 的主机上的 `~/.agents/skills/`。若 Paseo 客户端连远端主机，Skill 由远端 Codex 加载。主会话身份用 `PASEO_AGENT_ID` 或已确认的 Paseo agent ID，即使 Hydrogen 由子代理 Astra 派发，交付目标也是原 Terra 主会话。不要仅靠标题选会话。 [Codex Skill 安装位置](https://learn.chatgpt.com/docs/build-skills)
 
 优先用当前会话已有的 Paseo MCP 工具。以实时工具定义为准。
 
@@ -14,6 +14,7 @@
 | 在已有工作者上派发 | `send_agent_prompt` 的 `agentId` 和 `prompt` |
 | 调整已存在的工作者设置 | `update_agent` 的 `settings.model` 或 `settings.thinkingOptionId`，先等空闲，改完后核对实际生效的设置 |
 | 读计划或执行结论 | 优先用当前任务的完成摘要，必要时仅用 `get_agent_activity` 获取相关结论。Hydrogen 结果由展示桥接读取 |
+| 生成并显示 Hydrogen 成稿 | Paseo 工具 `pma_hydrogen`。后台 Hydrogen 会话由插件管理，主控只收到交付回执 |
 
 跨提供商创建工作者时，先检查模式。Neon 默认起草，Opus 路线中由 Opus 起草、Neon 补充。Hydrogen 负责聊天回复或润色，依据已授权的输入处理。可用时使用适合文本工作的受限模式，明确无需改文件或展开工作区历史。工作者只使用用户已授权的能力。发现计划缺失执行授权或有未解决的阻塞时，Astra 停住受影响的工作。
 
@@ -76,6 +77,9 @@
 
 ## Hydrogen 结果的去向
 
+- 有 `pma_hydrogen` 时，聊天由原主会话调用 `kind: "chat"`。计划由原主会话的直属 Astra 调用 `kind: "polish"`，并传 `rootAgentId` 为原主会话的 Paseo ID。后台 Astra 带标签 `paseo-workflow-role=astra`。主会话自己调用时省略 `rootAgentId`。
+- `brief` 只传当前请求或 Astra 已确认的定稿及必要格式要求。每项交付生成一个稳定且唯一的 `requestId`，例如 UUID。相关追问可用 `reuseWorker: true`，无关联任务使用默认值。插件负责触发 Hydrogen，调用方无需另开 Gemini。收到 `delivered: true` 后只记录交付状态，不提取或复述成稿。需要重试时使用原 `requestId`，避免再次生成。
+- 若 Paseo 客户端弹出 `pma_hydrogen` 工具使用确认，交给用户决定。服务重启后，原主对话可以用客户端命令 `/pma-replay` 恢复此前已展示的成稿，或在下一轮对话开始时自动恢复。
 - 真实 Hydrogen 回复统一以单独一行 `hydrogen:` 开始。手动交接使用上面的聊天或润色模板。若展示桥接有格式校验，确保首行标记只出现一次。Terra 的备用答复、Astra 原稿和进度使用各自的身份标识。
 - 只有当前主会话存在确认能仅在界面展示成稿的 Paseo 桥接时，才使用自动回显。插件使用原 Terra 主会话 ID 和任务身份进行交付及去重。Terra 和 Astra 只收状态。普通代理消息、完成通知、模型可见的工具返回和时间线展示项是不同通道。插件可用 `timeline.append` 展示结果。重启恢复使用已保存的正文。 [Paseo 0.17.4 插件时间线接口](https://github.com/getpaseo/paseo/blob/v0.17.4/public-docs/plugins/reference.md#append-a-timeline-row-from-the-daemon)
 - 自动回显尚无交付确认时，Terra 仅记录进度。确认桥接缺失或无法交付时，Terra 在原主对话提供 Astra 定稿或可打开的结果链接，聊天给出备用答复。以实际交付为准，进度摘要和工作者完成状态不作为已交付的证明。
