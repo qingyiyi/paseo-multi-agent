@@ -1,10 +1,11 @@
 import { useRpc } from "@getpaseo/plugin/client";
 import { Markdown } from "@getpaseo/plugin/client/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, Text, processColor } from "react-native";
 import { renderMath } from "../shared/render-math";
 import type { RenderOutput } from "../shared/render-math";
 import { getReferenceDefinitions, prepareMarkdown } from "./markdown-source";
+import { findInlineFormulas, replaceInlineFormulas } from "./inline-math";
 
 type Part = { source: string; expression?: string };
 
@@ -56,13 +57,13 @@ export function splitMathBlocks(text: string): Part[] {
   return parts;
 }
 
-export function usesStandaloneMath(text: string): boolean {
-  if (!/(?:\$\$|\\\[)/.test(text)) return false;
+export function usesNativeMath(text: string): boolean {
+  if (!/(?:\$|\\\[)/.test(text)) return false;
   const parts = splitMathBlocks(text);
-  // Leave other math syntax to the existing math plugin, including mixed messages.
-  return parts.some(({ expression }) => expression) && parts.every(({ expression, source }) =>
-    expression || !/(?:\$|\\\(|\\\[|^ {0,3}(?:`{3,}|~{3,})[ \t]*(?:math|latex|tex)\b)/im.test(source),
-  );
+  const prose = parts.filter(({ expression }) => !expression);
+  // Leave math syntax this renderer does not recognise to the existing math plugin.
+  if (prose.some(({ source }) => /(?:\$`|\\\(|\\\[|^ {0,3}(?:`{3,}|~{3,})[ \t]*(?:math|latex|tex)\b)/im.test(source))) return false;
+  return parts.length !== prose.length || prose.some(({ source }) => findInlineFormulas(source).length > 0);
 }
 
 function MathBlock({ expression, source, color }: { expression: string; source: string; color: string }) {
@@ -98,21 +99,46 @@ function MathBlock({ expression, source, color }: { expression: string; source: 
   );
 }
 
+function InlineMathMarkdown({ text, color }: { text: string; color: string }) {
+  const render = useRpc(renderMath);
+  const source = useMemo(() => prepareMarkdown(text), [text]);
+  const formulas = useMemo(() => findInlineFormulas(source), [source]);
+  const [result, setResult] = useState<{ source: string; color: string; markdown: string }>();
+
+  useEffect(() => {
+    if (!formulas.length) return;
+    let mounted = true;
+    const expressions = [...new Set(formulas.map(({ expression }) => expression))];
+    void Promise.allSettled(expressions.map((expression) => render({ expression, color, display: false })))
+      .then((renders) => {
+        if (!mounted) return;
+        const images = new Map<string, string>();
+        renders.forEach((entry, index) => {
+          if (entry.status === "fulfilled" && entry.value.ok) images.set(expressions[index], entry.value.png);
+        });
+        setResult({ source, color, markdown: replaceInlineFormulas(source, formulas, images) });
+      });
+    return () => { mounted = false; };
+  }, [source, formulas, color, render]);
+
+  return <Markdown>{result?.source === source && result.color === color ? result.markdown : source}</Markdown>;
+}
+
 export function MathMarkdown({ text, foreground }: { text: string; foreground: string }) {
+  const processed = processColor(foreground);
+  const color = typeof processed === "number"
+    ? "#" + (processed & 0xffffff).toString(16).padStart(6, "0")
+    : "#808080";
   const parts = splitMathBlocks(text);
-  if (!parts.some(({ expression }) => expression)) return <Markdown>{prepareMarkdown(text)}</Markdown>;
+  if (!parts.some(({ expression }) => expression)) return <InlineMathMarkdown text={text} color={color} />;
 
   // Links can reference definitions elsewhere in the card, across a display equation.
   const definitions = getReferenceDefinitions(
     parts.filter((part) => !part.expression).map((part) => part.source).join("\n\n"),
   );
-  const processed = processColor(foreground);
-  const color = typeof processed === "number"
-    ? "#" + (processed & 0xffffff).toString(16).padStart(6, "0")
-    : "#808080";
   return parts.map(({ expression, source }, index) => expression ? (
     <MathBlock key={index + ":" + color + ":" + expression} expression={expression} source={source} color={color} />
   ) : (
-    <Markdown key={index}>{prepareMarkdown(definitions ? `${definitions}\n\n${source}` : source)}</Markdown>
+    <InlineMathMarkdown key={index} text={definitions ? `${definitions}\n\n${source}` : source} color={color} />
   ));
 }

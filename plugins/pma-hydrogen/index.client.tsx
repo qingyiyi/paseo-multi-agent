@@ -1,7 +1,7 @@
 import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
 import { copyText, Icon, useToast } from "@getpaseo/plugin/client/ui";
-import { MathMarkdown, usesStandaloneMath } from "./client/math-blocks";
+import { MathMarkdown, usesNativeMath } from "./client/math-blocks";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { z } from "zod";
@@ -179,7 +179,7 @@ export default function contribute(client: PluginClientContext) {
     id: assistantMathKind,
     query: { itemType: "assistant_message" },
     transform({ item, phase }) {
-      if (phase !== "complete" || !usesStandaloneMath(item.text)) return;
+      if (phase !== "complete" || !usesNativeMath(item.text)) return;
       return { items: [{ type: "plugin", kind: assistantMathKind, version: 1, data: { text: item.text } }] };
     },
   });
