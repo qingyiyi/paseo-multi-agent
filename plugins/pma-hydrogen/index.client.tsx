@@ -1,7 +1,7 @@
 import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
 import { copyText, Icon, useToast } from "@getpaseo/plugin/client/ui";
-import { MathMarkdown, usesNativeMath } from "./client/math-blocks";
+import { MathMarkdown, canUseMathMarkdown, splitMathBlocks } from "./client/math-blocks";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { z } from "zod";
@@ -22,13 +22,17 @@ type ModelLabel = keyof typeof modelColors;
 type MarkdownPart = { text: string } | { labels: ModelLabel[] };
 
 const modelLabel = /\[(?:Opus(?: 5\.5)?|Neon|Astra)\]/g;
+const modelLabelLine = /^(?:\[(?:Opus(?: 5\.5)?|Neon|Astra)\][ \t]*)+\r?$/m;
 const assistantMathKind = "assistant-display-math";
 
 function splitModelLabels(source: string): MarkdownPart[] {
+  if (!modelLabelLine.test(source)) return [{ text: source }];
   // Reference links can point to definitions in later paragraphs.
   if (/^ {0,3}\[[^\]\n]+\]:/m.test(source)) return [{ text: source }];
 
   const lines = source.split(/(?<=\n)/);
+  const formulas = splitMathBlocks(source).filter((part) => part.expression !== undefined);
+  let formulaIndex = 0;
   const parts: MarkdownPart[] = [];
   let markdown = "";
   let fence: string | undefined;
@@ -43,7 +47,9 @@ function splitModelLabels(source: string): MarkdownPart[] {
       }
     }
 
-    const standalone = !fence && !lines[index - 1]?.trim() && !lines[index + 1]?.trim();
+    while (formulas[formulaIndex]?.lastLine < index) formulaIndex += 1;
+    const inFormula = formulas[formulaIndex]?.firstLine <= index;
+    const standalone = !fence && !inFormula && !lines[index - 1]?.trim() && !lines[index + 1]?.trim();
     if (standalone && line.startsWith("[") && !line.replace(modelLabel, "").trim()) {
       if (markdown.trim()) parts.push({ text: markdown });
       parts.push({ labels: line.match(modelLabel) as ModelLabel[] });
@@ -74,9 +80,8 @@ function Badge({ label }: { label: ModelLabel }) {
   );
 }
 
-function HydrogenResult({ item, theme }: PluginTimelineItemProps<{ text: string }>) {
-  const { text } = item.data;
-  const prefix = /^hydrogen:\r?\n/.exec(text);
+function ModelLabeledMarkdown({ text, foreground, hydrogen = false }: { text: string; foreground: string; hydrogen?: boolean }) {
+  const prefix = hydrogen ? /^hydrogen:\r?\n/.exec(text) : null;
   const parts = splitModelLabels(text.slice(prefix?.[0].length ?? 0));
 
   return (
@@ -88,14 +93,18 @@ function HydrogenResult({ item, theme }: PluginTimelineItemProps<{ text: string 
             {part.labels.map((label, index) => <Badge key={index} label={label} />)}
           </View>
         ) : (
-          <MathMarkdown key={index} text={part.text} foreground={theme.colors.foreground} />
+          <MathMarkdown key={index} text={part.text} foreground={foreground} />
         ),
       )}
     </View>
   );
 }
 
-function AssistantDisplayMath({ item, theme }: PluginTimelineItemProps<{ text: string }>) {
+function HydrogenResult({ item, theme }: PluginTimelineItemProps<{ text: string }>) {
+  return <ModelLabeledMarkdown text={item.data.text} foreground={theme.colors.foreground} hydrogen />;
+}
+
+function AssistantMarkdown({ item, theme }: PluginTimelineItemProps<{ text: string }>) {
   const toast = useToast();
   const text = item.data.text;
 
@@ -110,7 +119,7 @@ function AssistantDisplayMath({ item, theme }: PluginTimelineItemProps<{ text: s
 
   return (
     <View style={{ minWidth: 0, width: "100%" }}>
-      <MathMarkdown text={text} foreground={theme.colors.foreground} />
+      <ModelLabeledMarkdown text={text} foreground={theme.colors.foreground} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="复制原文"
@@ -179,7 +188,9 @@ export default function contribute(client: PluginClientContext) {
     id: assistantMathKind,
     query: { itemType: "assistant_message" },
     transform({ item, phase }) {
-      if (phase !== "complete" || !usesNativeMath(item.text)) return;
+      if (phase !== "complete") return;
+      const hasLabels = splitModelLabels(item.text).some((part) => "labels" in part);
+      if (!canUseMathMarkdown(item.text, hasLabels)) return;
       return { items: [{ type: "plugin", kind: assistantMathKind, version: 1, data: { text: item.text } }] };
     },
   });
@@ -187,7 +198,7 @@ export default function contribute(client: PluginClientContext) {
     kind: assistantMathKind,
     version: 1,
     schema: resultSchema,
-    Component: AssistantDisplayMath,
+    Component: AssistantMarkdown,
   });
   client.addTimelineRenderer({
     kind: resultKind,

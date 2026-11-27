@@ -7,7 +7,9 @@ import type { RenderOutput } from "../shared/render-math";
 import { getReferenceDefinitions, prepareMarkdown } from "./markdown-source";
 import { findInlineFormulas, replaceInlineFormulas } from "./inline-math";
 
-type Part = { source: string; expression?: string };
+type Part =
+  | { source: string; expression?: undefined }
+  | { source: string; expression: string; firstLine: number; lastLine: number };
 
 export function splitMathBlocks(text: string): Part[] {
   const lines = text.split(/(?<=\n)/);
@@ -49,7 +51,7 @@ export function splitMathBlocks(text: string): Part[] {
 
     const markdown = lines.slice(markdownStart, first).join("");
     if (markdown.trim()) parts.push({ source: markdown });
-    parts.push({ expression, source: lines.slice(first, index + 1).join("") });
+    parts.push({ expression, source: lines.slice(first, index + 1).join(""), firstLine: first, lastLine: index });
     markdownStart = index + 1;
   }
   const remaining = lines.slice(markdownStart).join("");
@@ -57,13 +59,14 @@ export function splitMathBlocks(text: string): Part[] {
   return parts;
 }
 
-export function usesNativeMath(text: string): boolean {
-  if (!/(?:\$|\\\[)/.test(text)) return false;
+export function canUseMathMarkdown(text: string, hasLabels: boolean): boolean {
+  const otherMath = /(?:\$`|\\\(|\\\[|^ {0,3}(?:`{3,}|~{3,})[ \t]*(?:math|latex|tex)\b)/im;
+  if (!text.includes("$") && !otherMath.test(text)) return hasLabels;
   const parts = splitMathBlocks(text);
   const prose = parts.filter(({ expression }) => !expression);
   // Leave math syntax this renderer does not recognise to the existing math plugin.
-  if (prose.some(({ source }) => /(?:\$`|\\\(|\\\[|^ {0,3}(?:`{3,}|~{3,})[ \t]*(?:math|latex|tex)\b)/im.test(source))) return false;
-  return parts.length !== prose.length || prose.some(({ source }) => findInlineFormulas(source).length > 0);
+  if (prose.some(({ source }) => otherMath.test(source))) return false;
+  return hasLabels || parts.length !== prose.length || prose.some(({ source }) => findInlineFormulas(source).length > 0);
 }
 
 function MathBlock({ expression, source, color }: { expression: string; source: string; color: string }) {

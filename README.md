@@ -53,7 +53,7 @@ paseo plugin ls pma-hydrogen
 
 查找文件、执行命令和核对事实由执行 Sol、Astra 或审定计划中负责该项的 Terra 完成。Hydrogen 接收作答需要的事实或已核实的定稿。如果仍遇到授权请求，原主对话会显示确认卡片。处理后插件继续等待原任务并回显成稿。如果这一轮无法完成，插件会显示调用时提供的已核实定稿。也可用 `/pma-replay` 查看仍待处理的请求。
 
-来源标签单独成行、前后留空行时，Opus 显示为红色，Neon 显示为金黄色，Astra 显示为紫色。卡片正文使用 Paseo 的 Markdown 渲染器，支持紧贴中文句读的加粗，以及与公式混排的标题、列表、表格和链接。正文含有 Markdown 引用链接定义时，来源标签作为普通 Markdown 显示。
+在普通助手回复和 Hydrogen 卡片中，来源标签单独成行、前后留空行时，Opus 显示为红色，Neon 显示为金黄色，Astra 显示为紫色。正文使用 Paseo 的 Markdown 渲染器，支持紧贴中文句读的加粗，以及与公式混排的标题、列表、表格和链接。正文含有 Markdown 引用链接定义时，来源标签作为普通 Markdown 显示。
 
 Hydrogen 卡片和普通助手消息中，独立 LaTeX 公式与标准行内公式可混排。公式在 Paseo 服务器本地排版，正文、标题、表格、列表和链接沿用 Paseo 原生 Markdown。PMA 生成数学公式时使用双美元，定界符各占一行，公式放在代码块之外。如启用了优先接管回复的第三方 Markdown 渲染器，显示样式取决于该渲染器。源代码及许可证见 [NOTICE](plugins/pma-hydrogen/NOTICE)。
 
