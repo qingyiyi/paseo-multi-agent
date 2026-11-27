@@ -1,9 +1,9 @@
 ---
-name: paseo-multi-agent
-description: Paseo-Multi-Agent（PMA）是 Paseo 的 Codex 多模型工作流。用于用户以 PMA 简称或明确要求这套协作的任务。主控 Sol 负责分流、派发和汇总，Neon 负责详细计划与结果分析，Astra High 审核计划和定稿，Hydrogen 回答聊天并润色成稿。点名 Opus 5.5 时由 Opus 起草、Neon 补充。
+name: pmac
+description: PMAC 是 Paseo 中由 Codex GPT-6.2 Sol 主控的多模型工作流。用于用户点名 PMAC 或在 Codex 会话中明确要求 PMA。Sol 分流、派发和汇总，Neon 详细规划并分析结果，Astra High 两轮审核，Hydrogen 回显成稿。
 ---
 
-# Paseo-Multi-Agent
+# PMAC（Codex 主控）
 
 保留原 Paseo Codex 对话与历史，由主控 GPT‑6.2 Sol 接收消息、判断路线、交接和汇报进度。执行任务交给独立的 GPT‑6.2 Sol 工作者。遵循当前任务和项目已确认的权限与决策分工。
 

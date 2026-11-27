@@ -2,7 +2,7 @@
 
 ## 原对话与可用工具
 
-在原 Paseo Codex 对话的模型选择器切到 GPT‑6.2 Sol。输入 `/PMA` 搜索并选择 `/paseo-multi-agent`，再追加实际任务。也可以直接输入完整命令 `/paseo-multi-agent`。直接使用 Codex 时用 `$paseo-multi-agent`。安装只需把 `paseo-multi-agent` 目录放进实际运行 Codex 的主机上的 `~/.agents/skills/`。若 Paseo 客户端连远端主机，Skill 由远端 Codex 加载。主会话身份用 `PASEO_AGENT_ID` 或已确认的 Paseo agent ID，即使 Hydrogen 由子代理 Astra 派发，交付目标也是原主控 Sol 会话。不要仅靠标题选会话。 [Codex Skill 安装位置](https://learn.chatgpt.com/docs/build-skills)
+在原 Paseo Codex 对话的模型选择器切到 GPT‑6.2 Sol。选择 `/pmac` 并追加实际任务。直接使用 Codex 时用 `$pmac`。把 `pmac` 目录放进实际运行 Codex 的主机上的 `~/.agents/skills/`。若 Paseo 客户端连远端主机，Skill 由远端 Codex 加载。主会话身份用 `PASEO_AGENT_ID` 或已确认的 Paseo agent ID，即使 Hydrogen 由子代理 Astra 调用，交付目标也是原主控 Sol 会话。不要仅靠标题选会话。 [Codex Skill 安装位置](https://learn.chatgpt.com/docs/build-skills)
 
 优先用当前会话已有的 Paseo MCP 工具。以实时工具定义为准。
 

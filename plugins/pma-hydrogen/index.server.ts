@@ -18,12 +18,18 @@ type Permission = NonNullable<Agent["pendingPermissions"]>[number];
 
 const provider = "antigravity";
 const model = "gemini-4-hydrogen";
+const neonModel = "gemini-4-neon";
 const rootKey = "pma-hydrogen.root";
 const workerKey = "pma-hydrogen.worker";
 const deliveryKey = "pma-hydrogen.delivery";
 const active = new Set<string>();
 const displayed = new Set<string>();
 const finishing = new Map<string, Promise<Delivery | null>>();
+
+function supportsRoot(snapshot: { provider: string; model?: string | null }) {
+  return snapshot.provider === "codex" ||
+    (snapshot.provider === provider && snapshot.model === neonModel);
+}
 
 function resultRows(text: string) {
   if (Buffer.byteLength(JSON.stringify({ text }), "utf8") <= 64 * 1024) return [text];
@@ -62,7 +68,7 @@ async function restoreFor(paseo: Paseo, agentId: string, force = false) {
   if (force && deliveries.length) {
     // A conversation may be unopened after a daemon restart.
     const history = await root.timeline.refetch({ direction: "tail", limit: 1 });
-    if (history.error || history.agent?.provider !== "codex" || history.agent.archivedAt) {
+    if (history.error || !history.agent || !supportsRoot(history.agent) || history.agent.archivedAt) {
       throw new Error("无法打开此主对话以恢复成稿。");
     }
   }
@@ -106,8 +112,12 @@ async function resolveRoot({ agent, paseo }: AgentToolContext, target?: string) 
 
   const root = paseo.agents.ref(rootId);
   const rootSnapshot = (await root.refresh())?.agent;
-  if (!rootSnapshot || rootSnapshot.provider !== "codex" || root.archivedAt) {
-    throw new Error("回显目标需要是可用的 Codex 会话。");
+  if (!rootSnapshot || !supportsRoot(rootSnapshot) || root.archivedAt) {
+    throw new Error("回显目标需要是可用的 Codex 或 Antigravity Neon 主对话。");
+  }
+  if (rootSnapshot.provider === provider &&
+      (rootId !== agent.id || rootSnapshot.background || agent.parentAgentId)) {
+    throw new Error("PMAA 交付需要由顶层 Neon 主对话发起。");
   }
   if (rootId !== agent.id) {
     const caller = await paseo.agents.ref(agent.id).refresh();
@@ -274,7 +284,7 @@ const publishHydrogen = defineAgentTool({
   description: "Use the configured official Hydrogen provider for a short reply or final polish, and display the result only in the original Paseo conversation. This tool returns delivery status only.",
   input: z.object({
     requestId: requestSchema.describe("Stable unique ID for this delivery. Retry with exactly the same ID."),
-    rootAgentId: idSchema.optional().describe("Original Paseo Codex ID. Omit from the main conversation, required from its Astra subagent."),
+    rootAgentId: idSchema.optional().describe("Omit when calling from a main conversation. For a Codex main conversation, its direct Astra worker supplies the main Paseo ID."),
     kind: z.enum(["chat", "polish"]),
     brief: z.string().trim().min(1).describe("Only the current request, necessary facts or writing constraints. When supplying fallbackDraft, put the draft there once."),
     fallbackDraft: z.string().trim().min(1).optional().describe("Verified user-facing draft for polishing and fallback display. Do not repeat it in brief."),
@@ -341,13 +351,16 @@ const publishHydrogen = defineAgentTool({
 export default function contribute(server: PluginServerContext) {
   server.handle(renderMath, renderFormula);
   server.addHook("agent.open.before", async ({ request }) => {
-    if (request.provider !== "codex" ||
-        (request.background && request.labels["paseo-workflow-role"] !== "astra")) return;
+    const codex = request.provider === "codex" &&
+      (!request.background || request.labels["paseo-workflow-role"] === "astra");
+    const antigravity = request.provider === provider && !request.background;
+    if (!codex && !antigravity) return;
     return { ...request, tools: [...request.tools, publishHydrogen] };
   });
 
   server.addHook("agent.turn.before", async ({ agent }, { paseo }) => {
-    if (agent.provider === "codex" && !agent.parentAgentId && !agent.background) {
+    if ((agent.provider === "codex" || agent.provider === provider) &&
+        !agent.parentAgentId && !agent.background) {
       await restoreFor(paseo, agent.id);
     }
   });
