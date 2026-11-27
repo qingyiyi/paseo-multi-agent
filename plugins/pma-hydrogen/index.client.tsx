@@ -1,6 +1,7 @@
 import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
-import { MathMarkdown } from "./client/math-blocks";
+import { copyText, Icon, useToast } from "@getpaseo/plugin/client/ui";
+import { MathMarkdown, usesStandaloneMath } from "./client/math-blocks";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { z } from "zod";
@@ -21,6 +22,7 @@ type ModelLabel = keyof typeof modelColors;
 type MarkdownPart = { text: string } | { labels: ModelLabel[] };
 
 const modelLabel = /\[(?:Opus(?: 5\.5)?|Neon|Astra)\]/g;
+const assistantMathKind = "assistant-display-math";
 
 function splitModelLabels(source: string): MarkdownPart[] {
   // Reference links can point to definitions in later paragraphs.
@@ -93,6 +95,34 @@ function HydrogenResult({ item, theme }: PluginTimelineItemProps<{ text: string 
   );
 }
 
+function AssistantDisplayMath({ item, theme }: PluginTimelineItemProps<{ text: string }>) {
+  const toast = useToast();
+  const text = item.data.text;
+
+  async function copySource() {
+    try {
+      await copyText(text);
+      toast.show("已复制原文", { variant: "success" });
+    } catch {
+      toast.error("无法复制原文");
+    }
+  }
+
+  return (
+    <View style={{ minWidth: 0, width: "100%" }}>
+      <MathMarkdown text={text} foreground={theme.colors.foreground} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="复制原文"
+        onPress={() => { void copySource(); }}
+        style={{ alignSelf: "flex-end", padding: 8 }}
+      >
+        <Icon name="Copy" size={14} color={theme.colors.foregroundMuted} />
+      </Pressable>
+    </View>
+  );
+}
+
 function PermissionCard({ agentId, item, theme }: PluginTimelineItemProps<z.output<typeof permissionSchema>>) {
   const respond = useRpc(answerPermission);
   const [state, setState] = useState<"ready" | "sending" | "sent" | "stale" | "error">("ready");
@@ -145,6 +175,20 @@ function DeliveryStatus({ item, theme }: PluginTimelineItemProps<z.output<typeof
 }
 
 export default function contribute(client: PluginClientContext) {
+  client.addTimelineTransformer({
+    id: assistantMathKind,
+    query: { itemType: "assistant_message" },
+    transform({ item, phase }) {
+      if (phase !== "complete" || !usesStandaloneMath(item.text)) return;
+      return { items: [{ type: "plugin", kind: assistantMathKind, version: 1, data: { text: item.text } }] };
+    },
+  });
+  client.addTimelineRenderer({
+    kind: assistantMathKind,
+    version: 1,
+    schema: resultSchema,
+    Component: AssistantDisplayMath,
+  });
   client.addTimelineRenderer({
     kind: resultKind,
     version: 1,

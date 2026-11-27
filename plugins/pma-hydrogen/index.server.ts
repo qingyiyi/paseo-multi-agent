@@ -18,7 +18,7 @@ type Permission = NonNullable<Agent["pendingPermissions"]>[number];
 
 const provider = "antigravity";
 const model = "gemini-4-hydrogen";
-const neonModel = "gemini-4-neon";
+const neonModels = new Set(["gemini-pro-orchestrator-neon", "gemini-4-neon"]);
 const rootKey = "pma-hydrogen.root";
 const workerKey = "pma-hydrogen.worker";
 const deliveryKey = "pma-hydrogen.delivery";
@@ -28,7 +28,7 @@ const finishing = new Map<string, Promise<Delivery | null>>();
 
 function supportsRoot(snapshot: { provider: string; model?: string | null }) {
   return snapshot.provider === "codex" ||
-    (snapshot.provider === provider && snapshot.model === neonModel);
+    (snapshot.provider === provider && neonModels.has(snapshot.model ?? ""));
 }
 
 function resultRows(text: string) {
@@ -117,7 +117,7 @@ async function resolveRoot({ agent, paseo }: AgentToolContext, target?: string) 
   }
   if (rootSnapshot.provider === provider &&
       (rootId !== agent.id || rootSnapshot.background || agent.parentAgentId)) {
-    throw new Error("PMAA 交付需要由顶层 Neon 主对话发起。");
+    throw new Error("Antigravity 路线的交付需要由顶层 Neon 主对话发起。");
   }
   if (rootId !== agent.id) {
     const caller = await paseo.agents.ref(agent.id).refresh();

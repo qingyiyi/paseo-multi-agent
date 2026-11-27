@@ -1,9 +1,4 @@
----
-name: pmac
-description: PMAC 是 Paseo 中由 Codex GPT-6.2 Sol 主控的多模型工作流。用于用户点名 PMAC 或在 Codex 会话中明确要求 PMA。Sol 分流、派发和汇总，Neon 详细规划并分析结果，Astra High 两轮审核，Hydrogen 回显成稿。
----
-
-# PMAC（Codex 主控）
+# Codex 主控流程
 
 保留原 Paseo Codex 对话与历史，由主控 GPT‑6.2 Sol 接收消息、判断路线、交接和汇报进度。执行任务交给独立的 GPT‑6.2 Sol 工作者。遵循当前任务和项目已确认的权限与决策分工。
 
@@ -35,4 +30,4 @@ description: PMAC 是 Paseo 中由 Codex GPT-6.2 Sol 主控的多模型工作流
 - 查找文件、执行命令和事实核对由执行 Sol、Astra 或审定计划中负责该项的 Terra 完成。向 Hydrogen 只交接作答所需的事实或已核实的定稿。若回复显示等待用户处理，等待同一轮自动回显。
 - 自动写回需要已验证的 Paseo 展示桥接。桥接缺失或交付失败时，主控 Sol 要在原主对话实际提供可用交付物或可打开的定稿链接，并说明 Hydrogen 回显状态。聊天用主控 Sol 的备用答复，简单执行用执行 Sol 的结果，计划或复杂执行用 Astra 定稿。进度消息不能充当结果。只在用户明确接受独立 Gemini 会话交付时，才在该会话生成 Hydrogen 结果，并关闭完成回传。已成功生成的成稿用于恢复显示时，直接取回已有记录。
 
-实际调用 Paseo 工具、核对现有工作者或准备交接时，读取 [Paseo 执行细节](references/paseo-execution.md)。
+实际调用 Paseo 工具、核对现有工作者或准备交接时，读取 [Paseo 执行细节](codex.md)。

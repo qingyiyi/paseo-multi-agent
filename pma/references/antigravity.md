@@ -1,18 +1,13 @@
----
-name: pmaa
-description: PMAA 是 Paseo 中由 Antigravity Gemini Neon 主控的多模型工作流。用于用户点名 PMAA，或在 Neon 会话中明确要求 PMA。Neon 讨论、拟定计划、派发并汇总，Astra High 审核，Sol 和 Terra 执行，Hydrogen 回显成稿。
----
+# Antigravity 主控流程
 
-# PMAA（Antigravity 主控）
+在 Paseo 的顶层 Antigravity 会话中使用 Orchestrator（Neon），模型 ID 为 `gemini-pro-orchestrator-neon`。以下简称 Neon。主控面向用户讨论范围、方案与确认点，维护计划和进度，以原主会话的 Paseo ID 标记独立的工作者。
 
-在 Paseo 的顶层 Antigravity 会话中使用 `gemini-4-neon` 主控。Neon 面向用户讨论范围、方案与确认点，维护审定计划和进度。记录原主会话的 Paseo ID。执行 Sol、Terra、Astra 和 Hydrogen 使用各自独立的会话。
-
-使用官方 `agy acp` 和官方 Codex。严禁自建或第三方模型反代理、模型中转与消费订阅 API 转接。只给每个模型发送用户授权范围内的材料。调用现有 Paseo 工具及交付前，读取 [PMAA 执行细节](references/paseo-execution.md)。
+派发工作或按用户要求调用 Hydrogen 时，读取 [Antigravity 执行细节](antigravity-tools.md)。
 
 ## 分流
 
-- 聊天和轻量问答由 Hydrogen 作答。Neon 提供当前问题以及理解它所需的最少背景，需要核对事实时先交给合适的执行工作者。方案、取舍、阻塞或确认点由 Neon 在原对话与用户讨论。
-- 边界明确的简单执行可由 Neon 直接派给执行 Sol 或适合的 Terra。用户指定审核时请 Astra 执行审核。核实结果后，由 Hydrogen 润色回显。
+- 聊天和轻量问答由 Neon 直接回答，需要核对事实时先交给合适的执行工作者。方案、取舍、阻塞或确认点由 Neon 在原对话与用户讨论。
+- 边界明确的简单执行可由 Neon 直接派给执行 Sol 或适合的 Terra。用户指定审核时请 Astra 执行审核。核实结果后由 Neon 直接交付。
 - 需要设计、拆分或审核的任务走下述流程。只要求方案时，完成计划审核和交付。需要用户确认时停在指定边界。
 
 ## 计划、执行与复核
@@ -21,6 +16,6 @@ description: PMAA 是 Paseo 中由 Antigravity Gemini Neon 主控的多模型工
 2. **Astra High 审核并补足细节。** 核对 `codex/gpt-6.2-astra` 的 `high` 设置。请 Astra 补全可执行与可验收的细节，明确依赖、风险、待确认点，返回带任务编号的审定版本。尚未获准执行时保留等待状态。
 3. **Neon 照审定版派发。** `codex/gpt-6.2-sol` 做实现、命令和测试。`codex/gpt-6.1-terra` 做计划指定的核对、独立调查或边界清晰的工作。工作者按任务编号把验收结果、证据、偏差和阻塞回给 Neon。需要改变范围、方法或验收时，由 Neon 请 Astra 审核受影响部分再继续。独立并且写入范围互不覆盖时可以并行。
 4. **Neon 汇总并给出建议。** 对照验收汇总事实和证据，标明未完成、偏差和结论限制。长时间或复杂任务、证据冲突、以及用户明确指定终审的任务，将汇总连同证据和初步判断交同一个 Astra 复核与补充。Neon 结合 Astra 的审核形成最终建议，遇到会改变结论的缺口就派发定向补核。
-5. **Hydrogen 润色并回显。** Neon 把核实后的定稿交给 `pma_hydrogen`。Hydrogen 以 `hydrogen:` 为首行，保留数字、结论、来源、Markdown 和双美元公式。成稿在原 Neon 主对话中展示，工具回执只含状态。发生回显失败时，由 Neon 交付核实稿或可打开的交付物。
+5. **Neon 直接交付定稿。** 正文保留数字、结论、不确定性、来源、Markdown 和双美元公式。向用户展示实际结果或可打开的交付物。用户明确要求 Hydrogen 时，从原 Neon 会话调用 `pma_hydrogen`，回执只含状态，Hydrogen 的成稿以 `hydrogen:` 为首行。
 
 同一原主会话的相关工作按 ID 复用 Sol、Terra 和 Astra，并核对模型、归属及空闲状态。新一轮只发与本轮有关的必要材料和增量。无关任务使用短会话。用户对项目的专门分工和授权优先。

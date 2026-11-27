@@ -56,6 +56,15 @@ export function splitMathBlocks(text: string): Part[] {
   return parts;
 }
 
+export function usesStandaloneMath(text: string): boolean {
+  if (!/(?:\$\$|\\\[)/.test(text)) return false;
+  const parts = splitMathBlocks(text);
+  // Leave other math syntax to the existing math plugin, including mixed messages.
+  return parts.some(({ expression }) => expression) && parts.every(({ expression, source }) =>
+    expression || !/(?:\$|\\\(|\\\[|^ {0,3}(?:`{3,}|~{3,})[ \t]*(?:math|latex|tex)\b)/im.test(source),
+  );
+}
+
 function MathBlock({ expression, source, color }: { expression: string; source: string; color: string }) {
   const render = useRpc(renderMath);
   const [result, setResult] = useState<RenderOutput>();
