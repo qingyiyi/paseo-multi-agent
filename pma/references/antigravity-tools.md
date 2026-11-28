@@ -2,6 +2,8 @@
 
 ## 启用与派发
 
+查看进度或已有结果时，使用主对话的 **PMA** 浮层。待授权与异常有处理入口，「成稿」查看已有 Hydrogen 结果，「自检」查看连接与工具设置，「速查」可复制协作模板。使用 `/pma` 发起新协作。
+
 在运行 Antigravity CLI 的主机上把 `pma` 目录放入 `~/.gemini/config/skills/`，或在项目的 `.agents/skills/` 中安装。打开 Paseo 顶层 Antigravity 会话，选 Orchestrator（Neon），用 `/pma` 加上任务。已有 Antigravity 会话如果尚未出现新 Skill 或工具，可在空闲时重载该会话。 [Antigravity Skill 文档](https://antigravity.google/docs/skills) · [Paseo Antigravity 文档](https://paseo.sh/docs/supported-providers/antigravity)
 
 通过 Paseo tools 核对当前会话、模型与已有工作者。用 `create_agent` 或 `send_agent_prompt` 派发，Astra 使用 `settings.thinkingOptionId: "high"`。用 `paseo-workflow-root` 和 `paseo-workflow-role` 标签记录根会话和 `astra`、`sol`、`terra` 等角色。优先消费本轮完成摘要，必要时才按已知 ID 读取相关活动。缺少工具时检查服务端 **Enable Paseo tools** 及 Antigravity 提供商策略。派发也可用本机 Paseo CLI，Hydrogen 自动回显依赖插件工具。 [Paseo tools](https://paseo.sh/docs/mcp)

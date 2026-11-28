@@ -1,28 +1,27 @@
 import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
 import { copyText, Icon, useToast } from "@getpaseo/plugin/client/ui";
+import { fromMarkdown } from "mdast-util-from-markdown";
 import { MathMarkdown, canUseMathMarkdown, splitMathBlocks } from "./client/math-blocks";
+import { installModelLabelColors, modelColors, modelLabelSource } from "./client/model-labels";
+import { contributeTeam } from "./client/team";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import type { z } from "zod";
 import {
   answerPermission, permissionKind, permissionSchema, resultKind, resultSchema, restore,
   statusKind, statusSchema,
 } from "./shared/hydrogen";
 
-const opus = { color: "#991B1B", backgroundColor: "#FEE2E2" };
-const modelColors = {
-  "hydrogen:": { color: "#1E3A8A", backgroundColor: "#DBEAFE" },
-  "[Opus]": opus,
-  "[Opus 5.5]": opus,
-  "[Neon]": { color: "#854D0E", backgroundColor: "#FEF3C7" },
-  "[Astra]": { color: "#6B21A8", backgroundColor: "#F3E8FF" },
-};
 type ModelLabel = keyof typeof modelColors;
 type MarkdownPart = { text: string } | { labels: ModelLabel[] };
 
-const modelLabel = /\[(?:Opus(?: 5\.5)?|Neon|Astra)\]/g;
-const modelLabelLine = /^(?:\[(?:Opus(?: 5\.5)?|Neon|Astra)\][ \t]*)+\r?$/m;
+const modelLabel = new RegExp(modelLabelSource, "g");
+const labelToken = `(?:${modelLabelSource}|\`${modelLabelSource}\`)`;
+const modelLabelLine = new RegExp(
+  String.raw`^${labelToken}(?:[ \t]*(?:[&＆][ \t]*)?${labelToken})*[ \t]*\r?$`,
+  "m",
+);
 const assistantMathKind = "assistant-display-math";
 
 function splitModelLabels(source: string): MarkdownPart[] {
@@ -31,26 +30,25 @@ function splitModelLabels(source: string): MarkdownPart[] {
   if (/^ {0,3}\[[^\]\n]+\]:/m.test(source)) return [{ text: source }];
 
   const lines = source.split(/(?<=\n)/);
+  // Markdown can end a paragraph at a list marker without an intervening blank line.
+  const labelLines = new Set<number>();
+  for (const node of fromMarkdown(source).children) {
+    if (node.type !== "paragraph" || !node.position) continue;
+    const { start, end } = node.position;
+    if (start.line === end.line && modelLabelLine.test(lines[start.line - 1])) {
+      labelLines.add(start.line - 1);
+    }
+  }
+
   const formulas = splitMathBlocks(source).filter((part) => part.expression !== undefined);
   let formulaIndex = 0;
   const parts: MarkdownPart[] = [];
   let markdown = "";
-  let fence: string | undefined;
 
   for (const [index, line] of lines.entries()) {
-    const marker = /^ {0,3}(`{3,}|~{3,})([^\r\n]*)/.exec(line);
-    if (marker) {
-      const [, run, rest] = marker;
-      if (!fence && (run[0] === "~" || !rest.includes("`"))) fence = run;
-      else if (fence && run[0] === fence[0] && run.length >= fence.length && !rest.trim()) {
-        fence = undefined;
-      }
-    }
-
     while (formulas[formulaIndex]?.lastLine < index) formulaIndex += 1;
     const inFormula = formulas[formulaIndex]?.firstLine <= index;
-    const standalone = !fence && !inFormula && !lines[index - 1]?.trim() && !lines[index + 1]?.trim();
-    if (standalone && line.startsWith("[") && !line.replace(modelLabel, "").trim()) {
+    if (!inFormula && labelLines.has(index)) {
       if (markdown.trim()) parts.push({ text: markdown });
       parts.push({ labels: line.match(modelLabel) as ModelLabel[] });
       markdown = "";
@@ -85,7 +83,7 @@ function ModelLabeledMarkdown({ text, foreground, hydrogen = false }: { text: st
   const parts = splitModelLabels(text.slice(prefix?.[0].length ?? 0));
 
   return (
-    <View style={{ gap: 8 }}>
+    <View testID="pma-model-markdown" style={{ gap: 8 }}>
       {prefix && <Badge label="hydrogen:" />}
       {parts.map((part, index) =>
         "labels" in part ? (
@@ -229,5 +227,10 @@ export default function contribute(client: PluginClientContext) {
     },
   });
 
-  return () => {};
+  const stopTeam = contributeTeam(client);
+  const stopColors = Platform.OS === "web" ? installModelLabelColors() : undefined;
+  return () => {
+    stopTeam();
+    stopColors?.();
+  };
 }

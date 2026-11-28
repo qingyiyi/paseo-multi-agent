@@ -11,6 +11,7 @@ import {
 } from "./shared/hydrogen";
 import { readDeliveries, readDelivery, rootDirectory, writeDelivery } from "./server/storage";
 import type { Delivery } from "./server/storage";
+import { listSaved, readSaved, teamCheck } from "./shared/team";
 
 type Paseo = AgentToolContext["paseo"];
 type Agent = ReturnType<Paseo["agents"]["ref"]>;
@@ -350,6 +351,29 @@ const publishHydrogen = defineAgentTool({
 
 export default function contribute(server: PluginServerContext) {
   server.handle(renderMath, renderFormula);
+  server.handle(teamCheck, async ({ agentId }, { paseo }) => {
+    const [agent, { config }] = await Promise.all([paseo.agents.ref(agentId).refresh(), paseo.config.get()]);
+    const providerPolicy = agent && config.providers[agent.agent.provider]?.paseoTools;
+    return {
+      exists: Boolean(agent),
+      toolsEnabled: config.mcp.injectIntoAgents && providerPolicy?.enabled !== false &&
+        !providerPolicy?.disabledTools?.some((tool) => tool === "create_agent" || tool === "send_agent_prompt"),
+    };
+  });
+  server.handle(listSaved, async ({ agentId, query }) => {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = (await readDeliveries(agentId)).reverse().flatMap(({ requestId, record }) => {
+      if (!record?.text || record.failed) return [];
+      const title = record.text.replace(/^hydrogen:\s*/i, "").trim().split(/\r?\n/, 1)[0].slice(0, 100);
+      const search = `${requestId} ${new Date(record.submittedAt).toISOString().slice(0, 10)} ${record.text}`.toLowerCase();
+      return terms.every((term) => search.includes(term)) ? [{ requestId, submittedAt: record.submittedAt, title }] : [];
+    });
+    return { items: matches.slice(0, 24), matches: matches.length };
+  });
+  server.handle(readSaved, async ({ agentId, requestId }) => {
+    const record = await readDelivery(agentId, requestId);
+    return { text: record?.failed ? null : record?.text ?? null };
+  });
   server.addHook("agent.open.before", async ({ request }) => {
     const codex = request.provider === "codex" &&
       (!request.background || request.labels["paseo-workflow-role"] === "astra");
