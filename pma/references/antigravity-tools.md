@@ -6,7 +6,7 @@
 
 在运行 Antigravity CLI 的主机上把 `pma` 目录放入 `~/.gemini/config/skills/`，或在项目的 `.agents/skills/` 中安装。打开 Paseo 顶层 Antigravity 会话，选 Orchestrator（Neon），用 `/pma` 加上任务。已有 Antigravity 会话如果尚未出现新 Skill 或工具，可在空闲时重载该会话。 [Antigravity Skill 文档](https://antigravity.google/docs/skills) · [Paseo Antigravity 文档](https://paseo.sh/docs/supported-providers/antigravity)
 
-通过 Paseo tools 核对当前会话、模型与已有工作者。用 `create_agent` 或 `send_agent_prompt` 派发，Astra 使用 `settings.thinkingOptionId: "high"`。用 `paseo-workflow-root` 和 `paseo-workflow-role` 标签记录根会话和 `astra`、`sol`、`terra` 等角色。优先消费本轮完成摘要，必要时才按已知 ID 读取相关活动。缺少工具时检查服务端 **Enable Paseo tools** 及 Antigravity 提供商策略。派发也可用本机 Paseo CLI，Hydrogen 自动回显依赖插件工具。 [Paseo tools](https://paseo.sh/docs/mcp)
+通过 Paseo tools 核对当前会话、模型与已有工作者。用 `create_agent` 或 `send_agent_prompt` 派发，遵循 [权限继承规则](../SKILL.md#继承主控的权限档位)。Astra 使用 `settings.thinkingOptionId: "high"`。用 `paseo-workflow-root` 和 `paseo-workflow-role` 标签记录根会话和 `astra`、`sol`、`terra` 等角色。优先消费本轮完成摘要，必要时才按已知 ID 读取相关活动。缺少工具时检查服务端 **Enable Paseo tools** 及 Antigravity 提供商策略。派发也可用本机 Paseo CLI，Hydrogen 自动回显依赖插件工具。 [Paseo tools](https://paseo.sh/docs/mcp)
 
 ## 交接内容
 

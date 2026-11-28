@@ -12,13 +12,13 @@
 | --- | --- |
 | 核对可用提供商、模型与会话模式 | `list_providers`、`list_models`、`inspect_provider` |
 | 发现并核对工作者 | `list_agents`、`get_agent_status`，后台工作者需包含在查询中 |
-| 启动某角色的首个任务 | `create_agent` 的 `provider`、`initialPrompt`、`labels` 等字段。Astra 使用 `settings.thinkingOptionId: "high"`，启动后核对有效设置 |
-| 在已有工作者上派发 | `send_agent_prompt` 的 `agentId` 和 `prompt` |
+| 启动某角色的首个任务 | `create_agent` 的 `provider`、`initialPrompt`、`labels` 和 `settings.modeId`。Astra 使用 `settings.thinkingOptionId: "high"`，启动后核对有效设置 |
+| 在已有工作者上派发 | `send_agent_prompt` 的 `agentId`、`prompt` 和 `sessionMode` |
 | 调整已存在的工作者设置 | `update_agent` 的 `settings.model` 或 `settings.thinkingOptionId`，先等空闲，改完后核对实际生效的设置 |
 | 读计划或执行结论 | 优先用当前任务的完成摘要，必要时仅用 `get_agent_activity` 获取相关结论。Hydrogen 结果由展示桥接读取 |
 | 生成并显示 Hydrogen 成稿 | Paseo 工具 `pma_hydrogen`。后台 Hydrogen 会话由插件管理，主控只收到交付回执 |
 
-跨提供商创建工作者时，先检查模式。Neon 负责规划和结果分析，Opus 路线中由 Opus 起草、Neon 补充。Hydrogen 负责聊天回复或润色，依据已授权的输入处理。可用时为文本角色使用受限模式。工作者只使用用户已授权的能力。遇到授权缺口或计划阻塞时，由主控 Sol 暂停受影响的工作。
+两种派发都按 [权限继承规则](../SKILL.md#继承主控的权限档位) 从原主会话取得模式。工作者只使用用户已授权的能力。遇到授权缺口或计划阻塞时，由主控 Sol 暂停受影响的工作。
 
 如果当前会话缺少工具，先检查 **Settings → 服务器 → Agents → Enable Paseo tools**。若工具已经启用但旧会话还未收到，可在其空闲时重载该 agent 来加载新工具，保留原线程。Skill 不自动改设置、重启服务或中断运行。Shell 可用时，现有 `paseo run --provider codex/gpt-6.2-sol --no-wait`、`paseo send` 和 `paseo inspect` 可补足执行委派与状态查询。当前 CLI 的 `paseo agent update` 无 `--model`，切换 Gemini 用 MCP 或用户界面的模型选择器。 [Paseo 委派文档](https://paseo.sh/docs/orchestration#get-started) · [Paseo MCP 工具](https://paseo.sh/docs/mcp)
 
